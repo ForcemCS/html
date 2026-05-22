@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cloudflare - Domains</title>
+    <style>
+        :root {
+            --cf-blue: #0051c3;
+            --cf-blue-hover: #003682;
+            --bg-app: #ffffff;
+            --bg-sidebar: #f9fafb;
+            --sidebar-border: #e5e7eb;
+            --text-main: #111827;
+            --text-muted: #6b7280;
+            --text-nav-default: #6b7280;
+            --text-nav-hover: #111827;
+            --border-color: #d1d5db;
+            --border-light: #e5e7eb;
+            --hover-bg: #f3f4f6;
+            --active-bg: #e5e7eb;
+            --focus-ring: rgba(0, 81, 195, 0.2);
+            --font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-app);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            font-size: 14px;
+        }
+
+        /* --- Sidebar --- */
+        .sidebar {
+            width: 256px;
+            background-color: var(--bg-sidebar);
+            border-right: 1px solid var(--sidebar-border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .account-selector {
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            border-bottom: 1px solid transparent;
+        }
+
+        .account-selector svg.cloud-icon {
+            fill: #f48120;
+            width: 24px;
+            height: 24px;
+        }
+
+        .account-chevron {
+            width: 16px;
+            height: 16px;
+            stroke: #6b7280;
+            fill: none;
+            stroke-width: 2;
+        }
+
+        .account-name {
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
+            font-size: 14px;
+        }
+
+        .sidebar-search {
+            padding: 8px 20px 16px;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 6px 12px;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .search-box svg {
+            width: 14px;
+            height: 14px;
+            margin-right: 8px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .search-box span.shortcut {
+            margin-left: auto;
+            font-size: 12px;
+            background: #fff;
+            border: 1px solid var(--border-light);
+            padding: 0 4px;
+            border-radius: 3px;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 12px 20px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            color: var(--text-nav-default);
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            margin-bottom: 2px;
+            background: transparent;
+            transition: background-color 0.16s ease, color 0.16s ease;
+        }
+
+        .nav-item svg {
+            width: 16px;
+            height: 16px;
+            margin-right: 12px;
+            stroke: var(--text-nav-default);
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            transition: stroke 0.16s ease;
+        }
+
+        .nav-item .chevron {
+            margin-left: auto;
+            width: 14px;
+            height: 14px;
+            margin-right: 0;
+            transition: transform 0.2s ease;
+        }
+
+        .nav-item:hover {
+            background-color: var(--hover-bg);
+            color: var(--text-nav-hover);
+        }
+
+        .nav-item:hover svg {
+            stroke: var(--text-nav-hover);
+        }
+
+        .nav-item.active {
+            background-color: var(--active-bg);
+            color: var(--text-main);
+            font-weight: 500;
+        }
+
+        .nav-item.active svg {
+            stroke: var(--text-main);
+        }
+
+        .nav-item.active .chevron {
+            transform: rotate(90deg);
+        }
+
+        .nav-spacer {
+            margin-top: 20px;
+        }
+
+        .nav-group-title {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin: 20px 0 8px 12px;
+        }
+
+        .nav-sub-item {
+            padding: 8px 12px 8px 40px;
+            display: block;
+            color: var(--text-nav-default);
+            text-decoration: none;
+            font-size: 13px;
+            border-radius: 4px;
+            margin-bottom: 2px;
+            background: transparent;
+            transition: background-color 0.16s ease, color 0.16s ease;
+        }
+
+        .nav-sub-item:hover {
+            background-color: var(--hover-bg);
+            color: var(--text-nav-hover);
+        }
+
+        .nav-sub-item.active {
+            background-color: var(--active-bg);
+            color: var(--text-main);
+            font-weight: 500;
+        }
+
+        /* --- Main Content --- */
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 12px 24px;
+            gap: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .top-bar-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-main);
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .top-bar-item svg {
+            width: 16px;
+            height: 16px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .profile-icon {
+            width: 20px;
+            height: 20px;
+            background: #e5e7eb;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .profile-icon svg {
+            width: 12px;
+            height: 12px;
+            fill: #6b7280;
+            stroke: none;
+        }
+
+        .content-area {
+            padding: 24px 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* Page Header */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 40px;
+        }
+
+        .title-section h1 {
+            font-size: 28px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .title-section h1 svg {
+            width: 28px;
+            height: 28px;
+            stroke: var(--text-main);
+            fill: none;
+            stroke-width: 2;
+        }
+
+        .title-section p {
+            color: var(--text-muted);
+            font-size: 15px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .btn-icon {
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            background: #fff;
+        }
+
+        .btn-icon:hover {
+            background: var(--hover-bg);
+        }
+
+        .btn-icon svg {
+            width: 16px;
+            height: 16px;
+            stroke: var(--text-main);
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .btn-outline {
+            border: 1px solid var(--border-color);
+            background: #fff;
+            color: var(--text-main);
+        }
+
+        .btn-outline:hover {
+            background: var(--hover-bg);
+        }
+
+        .btn-primary {
+            background-color: var(--cf-blue);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--cf-blue-hover);
+        }
+
+        /* Data Controls */
+        .data-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .filter-starred {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .filter-starred svg {
+            width: 16px;
+            height: 16px;
+            stroke: var(--text-muted);
+            fill: none;
+            stroke-width: 2;
+        }
+
+        .text-disabled {
+            opacity: 0.5;
+        }
+
+        .search-domain {
+            display: flex;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+            width: 320px;
+        }
+
+        .search-domain input {
+            flex: 1;
+            border: none;
+            padding: 8px 12px 8px 36px;
+            font-size: 14px;
+            outline: none;
+            background: #f9fafb url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'%3E%3C/circle%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'%3E%3C/line%3E%3C/svg%3E") no-repeat 12px center;
+        }
+
+        .search-domain button {
+            background: #fff;
+            border: none;
+            border-left: 1px solid var(--border-color);
+            padding: 0 16px;
+            color: var(--cf-blue);
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .search-domain button:hover {
+            background: var(--hover-bg);
+        }
+
+        /* Empty State Container */
+        .empty-state-container {
+            border: 1px solid var(--border-light);
+            border-radius: 4px;
+            background: #fff;
+            padding: 80px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .illustration {
+            position: relative;
+            width: 120px;
+            height: 100px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .ill-window {
+            width: 60px;
+            height: 70px;
+            background-color: #0051c3;
+            border-radius: 4px;
+            border: 2px solid #93c5fd;
+            position: absolute;
+            left: 20px;
+            top: 10px;
+            padding: 8px;
+        }
+
+        .ill-line {
+            height: 2px;
+            background: rgba(255,255,255,0.4);
+            margin-bottom: 6px;
+            border-radius: 2px;
+        }
+
+        .ill-line.w-half { width: 50%; }
+        .ill-line.w-full { width: 80%; }
+        .ill-line.w-short { width: 30%; }
+
+        .ill-bracket {
+            color: rgba(255,255,255,0.8);
+            font-family: monospace;
+            font-size: 10px;
+            line-height: 1;
+        }
+
+        .ill-paper {
+            width: 32px;
+            height: 40px;
+            background: #fff;
+            border: 1px solid #d1d5db;
+            border-radius: 2px;
+            position: absolute;
+            right: 25px;
+            bottom: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 8px;
+            z-index: 2;
+        }
+
+        .ill-paper:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            border-width: 0 8px 8px 0;
+            border-style: solid;
+            border-color: #f3f4f6 #fff #fff #e5e7eb;
+        }
+
+        .ill-eyes {
+            display: flex;
+            gap: 4px;
+            margin-top: 8px;
+        }
+
+        .ill-eye {
+            width: 3px;
+            height: 3px;
+            background: #9ca3af;
+            border-radius: 50%;
+        }
+
+        .ill-base-line {
+            position: absolute;
+            bottom: 5px;
+            width: 100%;
+            height: 1px;
+            background: #e5e7eb;
+            z-index: 1;
+        }
+
+        .empty-state-text {
+            color: var(--text-main);
+            font-size: 15px;
+        }
+
+        .empty-state-text a {
+            color: var(--cf-blue);
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+    </style>
+</head>
+<body>
+    <svg style="display: none;">
+        <defs>
+            <symbol id="icon-cloud" viewBox="0 0 24 24">
+                <path d="M19.4 9.6a7 7 0 0 0-13.8-1.5A5 5 0 0 0 5 18h14a5 5 0 0 0 .4-8.4z"></path>
+            </symbol>
+            <symbol id="icon-chevron" viewBox="0 0 24 24">
+                <polyline points="9 18 15 12 9 6"></polyline>
+            </symbol>
+            <symbol id="icon-search" viewBox="0 0 24 24">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </symbol>
+            <symbol id="icon-retention" viewBox="0 0 24 24">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </symbol>
+            <symbol id="icon-proplog" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+            </symbol>
+            <symbol id="icon-server" viewBox="0 0 24 24">
+                <line x1="18" y1="20" x2="18" y2="10"></line>
+                <line x1="12" y1="20" x2="12" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="14"></line>
+            </symbol>
+            <symbol id="icon-recharge" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+            </symbol>
+            <symbol id="icon-compute" viewBox="0 0 24 24">
+                <polyline points="16 18 22 12 16 6"></polyline>
+                <polyline points="8 6 2 12 8 18"></polyline>
+            </symbol>
+            <symbol id="icon-ai" viewBox="0 0 24 24">
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </symbol>
+            <symbol id="icon-storage" viewBox="0 0 24 24">
+                <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+            </symbol>
+            <symbol id="icon-media" viewBox="0 0 24 24">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </symbol>
+            <symbol id="icon-security" viewBox="0 0 24 24">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </symbol>
+            <symbol id="icon-zerotrust" viewBox="0 0 24 24">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </symbol>
+            <symbol id="icon-network" viewBox="0 0 24 24">
+                <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                <line x1="6" y1="18" x2="6.01" y2="18"></line>
+            </symbol>
+            <symbol id="icon-delivery" viewBox="0 0 24 24">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </symbol>
+            <symbol id="icon-account" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </symbol>
+            <symbol id="icon-ask-ai" viewBox="0 0 24 24">
+                <path d="M12 2l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"></path>
+            </symbol>
+            <symbol id="icon-support" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </symbol>
+            <symbol id="icon-profile" viewBox="0 0 24 24">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+            </symbol>
+            <symbol id="icon-action" viewBox="0 0 24 24">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+            </symbol>
+            <symbol id="icon-filter" viewBox="0 0 24 24">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </symbol>
+        </defs>
+    </svg>
+
+    <aside class="sidebar">
+        <div class="account-selector">
+            <svg class="cloud-icon" viewBox="0 0 24 24"><use href="#icon-cloud"></use></svg>
+            <div class="account-name">wukui@xinghuihuyu.cn's ...</div>
+            <svg class="account-chevron" viewBox="0 0 24 24"><use href="#icon-chevron"></use></svg>
+        </div>
+
+        <div class="sidebar-search">
+            <div class="search-box">
+                <svg viewBox="0 0 24 24"><use href="#icon-search"></use></svg>
+                Quick search...
+                <span class="shortcut">Ctrl K</span>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-item">
+                <svg viewBox="0 0 24 24"><use href="#icon-retention"></use></svg>
+                充值统计
+            </a>
+
+            <a href="#" class="nav-item">
+                <svg viewBox="0 0 24 24"><use href="#icon-proplog"></use></svg>
+                道具日志
+                <svg class="chevron" viewBox="0 0 24 24"><use href="#icon-chevron"></use></svg>
+            </a>
+
+            <a href="#" class="nav-item">
+                <svg viewBox="0 0 24 24"><use href="#icon-server"></use></svg>
+                区服列表
+                <svg class="chevron" viewBox="0 0 24 24"><use href="#icon-chevron"></use></svg>
+            </a>
+            
+            <a href="#" class="nav-item active">
+                <svg viewBox="0 0 24 24"><use href="#icon-recharge"></use></svg>
+                留存分析
+                <svg class="chevron" viewBox="0 0 24 24"><use href="#icon-chevron"></use></svg>
+            </a>
+
+            <a href="#" class="nav-sub-item active">普通留存</a>
+            <a href="#" class="nav-sub-item">付费留存</a>
+            <a href="#" class="nav-sub-item">Transfers</a>
+
+            <div class="nav-group-title">Build</div>
+
+            <a href="#" class="nav-item">
+                <svg viewBox="0 0 24 24"><use href="#icon-compute"></use></svg>
+                Compute
+                <svg class="chevron" viewBox="0 0 24 24"><use href="#icon-chevron"></use></svg>
+            </a>
+
+            <a href="#" class="nav-item">
+                <svg viewBox="0 0 24 24"><use href="#icon-ai"></use></svg>
+                AI
+                <svg class="chevron" viewBox="0 0 24 24"><use href="#icon-chevron"></use></svg>
+            </a>
+
+            <a href="#" class="nav-item">
+                <svg viewBox="0 0 24 24"><use href="#icon-storage"></use></svg>
+                Storage & databases
+                <svg class="chevron" viewBox="0 0 24 24"><use href="#icon-chevron"></use></svg>
+            </a>
+
+            <a href="#" class="nav-item">
+                <svg viewBox="0 0 24 24"><use href="#icon-media"></use></svg>
+                Media
+                <svg class="chevron" viewBox="0 0 24 24"><use href="#icon-chevron"></use></svg>
+            </a>
+
+            <div class="nav-group-title">Protect & Connect</div>
+
+            <a href="#" class="nav-item">
+                <svg viewBox="0 0 24 24"><use href="#icon-security"></use></svg>
+                Application security
+                <svg class="chevron" viewBox="0 0 24 24"><use href="#icon-chevron"></use></svg>
+            </a>
+
+            <a href="#" class="nav-item">
+                <svg viewBox="0 0 24 24"><use href="#icon-zerotrust"></use></svg>
+                Zero Trust
+            </a>
+
+            <a href="#" class="nav-item">
+                <svg viewBox="0 0 24 24"><use href="#icon-network"></use></svg>
+                Networking
+                <svg class="chevron" viewBox="0 0 24 24"><use href="#icon-chevron"></use></svg>
+            </a>
+
+            <a href="#" class="nav-item">
+                <svg viewBox="0 0 24 24"><use href="#icon-delivery"></use></svg>
+                Delivery & performance
+                <svg class="chevron" viewBox="0 0 24 24"><use href="#icon-chevron"></use></svg>
+            </a>
+
+            <div class="nav-spacer"></div>
+
+            <a href="#" class="nav-item">
+                <svg viewBox="0 0 24 24"><use href="#icon-account"></use></svg>
+                Manage account
+                <svg class="chevron" viewBox="0 0 24 24"><use href="#icon-chevron"></use></svg>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="main-container">
+        <header class="top-bar">
+            <a href="#" class="top-bar-item">
+                <svg viewBox="0 0 24 24"><use href="#icon-ask-ai"></use></svg>
+                Ask AI
+            </a>
+
+            <a href="#" class="top-bar-item">
+                <svg viewBox="0 0 24 24"><use href="#icon-support"></use></svg>
+                Support
+            </a>
+
+            <div class="profile-icon">
+                <svg viewBox="0 0 24 24"><use href="#icon-profile"></use></svg>
+            </div>
+        </header>
+
+        <div class="content-area">
+            <div class="page-header">
+                <div class="title-section">
+                    <h1>
+                        <svg viewBox="0 0 24 24"><use href="#icon-recharge"></use></svg>
+                        Domains
+                    </h1>
+                    <p>Connect your websites to the Cloudflare network to improve application security and<br>delivery.</p>
+                </div>
+
+                <div class="action-buttons">
+                    <a href="#" class="btn btn-icon">
+                        <svg viewBox="0 0 24 24"><use href="#icon-action"></use></svg>
+                    </a>
+                    <a href="#" class="btn btn-outline">Buy domain</a>
+                    <a href="#" class="btn btn-primary">Onboard domain</a>
+                </div>
+            </div>
+
+            <div class="data-controls">
+                <div class="filter-starred">
+                    Filter by:
+                    <svg viewBox="0 0 24 24"><use href="#icon-filter"></use></svg>
+                    <span class="text-disabled">Starred</span>
+                </div>
+
+                <form class="search-domain" onsubmit="event.preventDefault();">
+                    <input type="text" placeholder="Search by domain name..." />
+                    <button type="submit">Search</button>
+                </form>
+            </div>
+
+            <div class="empty-state-container">
+                <div class="illustration">
+                    <div class="ill-window">
+                        <div class="ill-bracket">{</div>
+                        <div class="ill-line w-half"></div>
+                        <div class="ill-line w-full"></div>
+                        <div class="ill-line w-short"></div>
+                        <div class="ill-bracket" style="margin-top:10px;">}</div>
+                    </div>
+                    <div class="ill-paper">
+                        <div class="ill-eyes">
+                            <div class="ill-eye"></div>
+                            <div class="ill-eye"></div>
+                        </div>
+                    </div>
+                    <div class="ill-base-line"></div>
+                </div>
+
+                <div class="empty-state-text">
+                    No domains or subdomains found. Try again or <a href="#">add a site</a>.
+                </div>
+            </div>
+        </div>
+    </main>
+
+</body>
+</html>
