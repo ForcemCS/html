@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Nebula 游戏业务运维与数据分析工作台">
+  <title>Nebula · 统一运维工作台</title>
+  <style>
+    :root {
+      --brand: #0757d9;
+      --brand-dark: #003b9a;
+      --brand-deep: #082f72;
+      --brand-soft: #e9f2ff;
+      --ink: #102447;
+      --muted: #61718c;
+      --line: #d9e2ef;
+      --paper: #f5f7fb;
+      --card: #fff;
+      --yellow: #ffc928;
+      --green: #13875f;
+      --green-soft: #e5f6ef;
+      --orange: #dd7b25;
+      --orange-soft: #fff1e3;
+      --purple: #6f54d9;
+      --purple-soft: #f0edff;
+      --shadow: 0 14px 38px rgba(16, 52, 110, .11);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; min-height: 100vh; background: var(--paper); color: var(--ink); font: 14px/1.5 Inter, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif; }
+    body.menu-open { overflow: hidden; }
+    button, input { font: inherit; color: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, input:focus-visible { outline: 3px solid rgba(255, 201, 40, .6); outline-offset: 2px; }
+
+    .site-header { position: sticky; top: 0; z-index: 50; box-shadow: 0 2px 12px rgba(0, 41, 110, .14); }
+    .masthead { min-height: 76px; padding: 12px clamp(18px, 2.5vw, 38px); display: grid; grid-template-columns: auto minmax(220px, 1fr) auto; align-items: center; gap: 18px; background: var(--brand); color: white; }
+    .brand-area { display: flex; align-items: center; gap: 13px; }
+    .brand { border: 0; padding: 0; display: flex; align-items: center; gap: 10px; background: transparent; color: white; }
+    .spark { width: 35px; height: 35px; display: grid; place-items: center; color: var(--yellow); font-size: 34px; font-weight: 900; line-height: 1; transform: rotate(8deg); }
+    .brand-name { font-size: 22px; font-weight: 900; letter-spacing: -.7px; }
+    .environment-button { height: 48px; min-width: 235px; padding: 6px 14px 6px 8px; border: 0; border-radius: 26px; display: flex; align-items: center; gap: 10px; background: var(--brand-dark); color: white; text-align: left; }
+    .environment-button:hover { background: #002f7d; }
+    .env-icon { width: 36px; height: 36px; flex: 0 0 36px; border-radius: 50%; display: grid; place-items: center; background: #e5f5ff; color: var(--brand); font-size: 18px; }
+    .environment-button b, .environment-button small { display: block; }
+    .environment-button b { font-size: 12px; }
+    .environment-button small { color: #c9dcff; font-size: 9px; }
+    .chevron { margin-left: auto; }
+
+    .global-search { height: 48px; padding: 4px 5px 4px 18px; border-radius: 999px; display: flex; align-items: center; background: white; box-shadow: inset 0 0 0 1px rgba(0, 41, 110, .08); }
+    .global-search input { width: 100%; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; color: var(--ink); }
+    .global-search input::placeholder { color: #60708b; }
+    .search-submit { width: 39px; height: 39px; flex: 0 0 39px; border: 0; border-radius: 50%; display: grid; place-items: center; background: var(--brand-dark); color: white; font-size: 20px; }
+    .search-submit:hover { background: var(--brand-deep); }
+
+    .header-actions { display: flex; align-items: center; gap: 5px; }
+    .header-action { min-width: 76px; height: 50px; padding: 5px 9px; border: 0; border-radius: 12px; background: transparent; color: white; text-align: left; }
+    .header-action:hover { background: rgba(255,255,255,.1); }
+    .header-action small, .header-action b { display: block; }
+    .header-action small { color: #d6e5ff; font-size: 9px; }
+    .header-action b { font-size: 11px; }
+    .balance { text-align: center; }
+    .balance span { display: block; color: var(--yellow); font-size: 18px; line-height: 1; }
+
+    .quick-nav { min-height: 44px; padding: 7px clamp(18px, 2.5vw, 38px); display: flex; align-items: center; gap: 7px; overflow-x: auto; background: #eef5ff; scrollbar-width: none; }
+    .quick-nav::-webkit-scrollbar { display: none; }
+    .pill { height: 31px; padding: 0 13px; border: 0; border-radius: 999px; flex: 0 0 auto; background: white; color: #23456f; font-size: 10px; box-shadow: 0 1px 2px rgba(22, 57, 103, .08); }
+    .pill:hover, .pill.active { background: #d8e8ff; color: var(--brand-dark); }
+    .pill.primary { padding-inline: 15px; font-weight: 800; }
+    .pill .down { margin-left: 6px; }
+
+    .mega-menu { position: fixed; inset: 120px auto auto clamp(18px, 2.5vw, 38px); z-index: 70; width: min(480px, calc(100vw - 36px)); height: min(640px, calc(100vh - 140px)); border-radius: 0 0 8px 8px; display: none; grid-template-columns: 1.08fr .92fr; overflow: hidden; background: white; box-shadow: 0 24px 60px rgba(0, 25, 68, .28); }
+    .mega-menu.open { display: grid; animation: menu-in .2s ease; }
+    @keyframes menu-in { from { opacity: 0; transform: translateY(-6px); } }
+    .menu-column { min-width: 0; overflow-y: auto; padding: 13px 0; }
+    .menu-column:first-child { background: white; }
+    .menu-column:last-child { border-left: 1px solid #cbd9eb; background: #eaf2ff; }
+    .menu-title { margin: 0; padding: 8px 20px 12px; font-size: 13px; }
+    .menu-item { width: 100%; min-height: 40px; padding: 8px 20px; border: 0; border-left: 4px solid transparent; display: flex; align-items: center; justify-content: space-between; background: transparent; color: #3e4f68; text-align: left; font-size: 11px; }
+    .menu-item:hover { background: #eef4ff; color: var(--brand-dark); }
+    .menu-item.active { border-left-color: var(--brand); background: #dceaff; color: var(--brand-dark); font-weight: 800; }
+    .menu-column:last-child .menu-item:hover { background: #dceaff; }
+    .menu-item .count { padding: 1px 7px; border-radius: 999px; background: rgba(7,87,217,.1); color: var(--brand); font-size: 9px; }
+    .page-overlay { position: fixed; inset: 120px 0 0; z-index: 60; display: none; background: rgba(16, 24, 36, .43); backdrop-filter: grayscale(.25); }
+    .page-overlay.show { display: block; animation: fade .2s ease; }
+    @keyframes fade { from { opacity: 0; } }
+
+    .page { width: min(1320px, calc(100% - 36px)); margin: 0 auto; padding: 20px 0 54px; }
+    .breadcrumbs { margin: 0 0 12px; color: var(--muted); font-size: 10px; }
+    .breadcrumbs b { color: var(--ink); }
+    .hero { position: relative; min-height: 250px; padding: clamp(28px, 4vw, 48px); border-radius: 12px; overflow: hidden; display: flex; align-items: center; background: var(--brand-dark); color: white; box-shadow: var(--shadow); }
+    .hero::before, .hero::after { content: ""; position: absolute; border-radius: 50%; }
+    .hero::before { width: 560px; height: 560px; right: -230px; top: -160px; border: 70px solid var(--yellow); box-shadow: 0 0 0 70px #f6a900, 0 0 0 140px #67b3ff; opacity: .96; }
+    .hero::after { width: 240px; height: 240px; right: 95px; top: 5px; border: 2px solid rgba(255,255,255,.3); }
+    .hero-content { position: relative; z-index: 2; width: min(650px, 70%); }
+    .hero-kicker { margin: 0 0 4px; color: #bcd4ff; font-size: 13px; font-weight: 800; }
+    .hero h1 { margin: 0 0 10px; font-size: clamp(30px, 4.2vw, 52px); line-height: 1.05; letter-spacing: -1.8px; }
+    .hero p { margin: 0 0 22px; max-width: 560px; color: #dbe8ff; }
+    .hero-button { height: 38px; padding: 0 17px; border: 0; border-radius: 999px; background: white; color: var(--brand-dark); font-size: 11px; font-weight: 900; }
+    .hero-button:hover { background: var(--yellow); }
+    .hero-status { position: absolute; z-index: 3; right: 18px; bottom: 15px; color: #173b74; font-size: 9px; font-weight: 800; }
+
+    .section { margin-top: 28px; }
+    .section-head { margin-bottom: 14px; display: flex; align-items: flex-end; justify-content: space-between; gap: 15px; }
+    .section-head h2 { margin: 0; font-size: 20px; letter-spacing: -.4px; }
+    .section-head p { margin: 2px 0 0; color: var(--muted); font-size: 10px; }
+    .link-button { padding: 4px 0; border: 0; background: transparent; color: var(--brand-dark); font-size: 10px; text-decoration: underline; }
+
+    .workspace-row { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 18px; }
+    .workspace-card { min-width: 0; padding: 0; border: 0; background: transparent; text-align: left; }
+    .workspace-card[hidden] { display: none; }
+    .workspace-art { position: relative; aspect-ratio: 1.2; border-radius: 10px; overflow: hidden; display: grid; place-items: center; background: linear-gradient(145deg, #e6efff, #c7dcff); transition: transform .2s ease, box-shadow .2s ease; }
+    .workspace-card:hover .workspace-art { transform: translateY(-4px); box-shadow: var(--shadow); }
+    .workspace-art.green { background: linear-gradient(145deg, #e3f7ef, #bfead7); }
+    .workspace-art.orange { background: linear-gradient(145deg, #fff1e1, #ffd3a5); }
+    .workspace-art.purple { background: linear-gradient(145deg, #f0ecff, #d4c9ff); }
+    .workspace-art.navy { background: linear-gradient(145deg, #dfe8f4, #b7c8df); }
+    .workspace-art.yellow { background: linear-gradient(145deg, #fff7d2, #ffe580); }
+    .art-icon { width: 66px; height: 66px; border-radius: 22px 22px 22px 7px; display: grid; place-items: center; background: white; color: var(--brand); font-size: 25px; font-weight: 900; box-shadow: 0 12px 28px rgba(16, 52, 110, .14); }
+    .workspace-art.green .art-icon { color: var(--green); }
+    .workspace-art.orange .art-icon { color: var(--orange); }
+    .workspace-art.purple .art-icon { color: var(--purple); }
+    .workspace-art.navy .art-icon { color: var(--ink); }
+    .workspace-art.yellow .art-icon { color: #9b7100; }
+    .favorite { position: absolute; right: 9px; top: 9px; width: 29px; height: 29px; border: 1px solid rgba(20,50,95,.18); border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,.88); font-size: 15px; }
+    .workspace-card h3 { margin: 10px 0 2px; font-size: 12px; }
+    .workspace-card p { min-height: 32px; margin: 0; color: var(--muted); font-size: 9px; }
+    .card-meta { margin-top: 7px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .card-meta strong { color: var(--green); font-size: 12px; }
+    .open-chip { padding: 4px 11px; border: 1px solid #345073; border-radius: 999px; color: var(--ink); font-size: 9px; font-weight: 800; }
+
+    .promo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    .promo { position: relative; min-height: 210px; padding: 24px; border-radius: 12px; overflow: hidden; background: #c9eef4; color: #0b3675; }
+    .promo:nth-child(2) { background: #f5dfc7; }
+    .promo:nth-child(3) { background: #c9e5f0; }
+    .promo h3 { position: relative; z-index: 2; max-width: 73%; margin: 0 0 9px; font-size: clamp(18px, 2.3vw, 28px); line-height: 1.1; }
+    .promo a { position: relative; z-index: 2; color: inherit; font-size: 10px; }
+    .promo-shape { position: absolute; right: -30px; bottom: -55px; width: 190px; height: 190px; border-radius: 50%; background: rgba(255,255,255,.65); box-shadow: -45px -20px 0 rgba(7,87,217,.11); }
+    .promo-shape::after { content: attr(data-icon); position: absolute; inset: 0; display: grid; place-items: center; font-size: 58px; }
+
+    .operations-grid { display: grid; grid-template-columns: 1.35fr .65fr; gap: 18px; }
+    .panel { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: white; box-shadow: 0 6px 22px rgba(16,52,110,.05); }
+    .panel-head { min-height: 58px; padding: 13px 17px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 15px; }
+    .panel-head b, .panel-head small { display: block; }
+    .panel-head small { color: var(--muted); font-size: 9px; }
+    .status-live { padding: 4px 9px; border-radius: 999px; background: var(--green-soft); color: var(--green); font-size: 9px; font-weight: 900; }
+    .metric-row { display: grid; grid-template-columns: repeat(4, 1fr); }
+    .metric { padding: 19px; border-right: 1px solid var(--line); }
+    .metric:last-child { border-right: 0; }
+    .metric span, .metric strong, .metric small { display: block; }
+    .metric span, .metric small { color: var(--muted); font-size: 9px; }
+    .metric strong { margin: 5px 0 2px; font-size: 24px; letter-spacing: -.7px; }
+    .metric small.good { color: var(--green); }
+    .sparkline { height: 66px; padding: 8px 18px 16px; display: flex; align-items: flex-end; gap: 5px; }
+    .sparkline i { flex: 1; min-width: 3px; border-radius: 3px 3px 0 0; background: #bed4f8; }
+    .sparkline i:nth-child(3n) { background: var(--brand); }
+    .task-list { padding: 3px 17px; }
+    .task { padding: 13px 0; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; }
+    .task:last-child { border-bottom: 0; }
+    .task-icon { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: var(--brand-soft); color: var(--brand); font-size: 10px; font-weight: 900; }
+    .task b, .task small { display: block; }
+    .task b { font-size: 10px; }
+    .task small { color: var(--muted); font-size: 8px; }
+    .task time { color: var(--muted); font-size: 8px; }
+
+    .empty-search { display: none; margin: 22px 0; padding: 34px; border: 1px dashed #aebdd0; border-radius: 12px; background: white; text-align: center; color: var(--muted); }
+    .empty-search.show { display: block; }
+    .toast { position: fixed; right: 24px; bottom: 24px; z-index: 90; padding: 12px 16px; border: 1px solid #bfd1e8; border-radius: 12px; background: white; box-shadow: var(--shadow); opacity: 0; transform: translateY(10px); pointer-events: none; transition: .22s ease; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast-dot { width: 7px; height: 7px; margin-right: 8px; display: inline-block; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 4px rgba(19,135,95,.12); }
+
+    @media (max-width: 1080px) {
+      .masthead { grid-template-columns: auto 1fr; }
+      .global-search { grid-column: 1 / -1; grid-row: 2; }
+      .header-actions { margin-left: auto; }
+      .environment-button { min-width: 205px; }
+      .site-header { position: relative; }
+      .mega-menu, .page-overlay { top: 180px; }
+      .workspace-row { grid-template-columns: repeat(3, 1fr); }
+      .operations-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 720px) {
+      .masthead { padding: 10px 14px; gap: 10px; }
+      .brand-name { display: none; }
+      .spark { width: 30px; }
+      .environment-button { min-width: 0; flex: 1; }
+      .header-action { min-width: 42px; width: 42px; padding: 5px; text-align: center; }
+      .header-action small, .header-action b { display: none; }
+      .header-action::before { content: "◎"; font-size: 20px; }
+      .balance { display: none; }
+      .quick-nav { padding-inline: 14px; }
+      .mega-menu { inset-inline: 14px; width: calc(100vw - 28px); grid-template-columns: 1fr 1fr; }
+      .page { width: calc(100% - 28px); padding-top: 14px; }
+      .hero { min-height: 310px; align-items: flex-start; }
+      .hero::before { right: -350px; top: 70px; }
+      .hero-content { width: 100%; }
+      .hero-status { color: white; }
+      .workspace-row { grid-template-columns: repeat(2, 1fr); gap: 16px 12px; }
+      .promo-grid { grid-template-columns: 1fr; }
+      .metric-row { grid-template-columns: repeat(2, 1fr); }
+      .metric:nth-child(2) { border-right: 0; }
+      .metric:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+    }
+
+    @media (max-width: 430px) {
+      .environment-button b { max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .environment-button small { display: none; }
+      .mega-menu { grid-template-columns: 1fr; }
+      .mega-menu .menu-column:last-child { display: none; }
+      .workspace-row { grid-template-columns: 1fr 1fr; }
+      .workspace-card p { display: none; }
+      .card-meta { align-items: flex-start; flex-direction: column; }
+      .open-chip { padding-inline: 9px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <div class="brand-area">
+        <button class="brand" aria-label="返回首页"><span class="spark">✦</span><span class="brand-name">Nebula</span></button>
+        <button class="environment-button" id="environmentButton">
+          <span class="env-icon">◈</span>
+          <span><b>生产环境 · CN</b><small>华东主集群 · 30 个区服在线</small></span>
+          <span class="chevron">⌄</span>
+        </button>
+      </div>
+
+      <form class="global-search" id="globalSearch" role="search">
+        <input id="searchInput" type="search" aria-label="全局搜索" placeholder="搜索大区、区服、数据引擎或平台功能">
+        <button class="search-submit" type="submit" aria-label="提交搜索">⌕</button>
+      </form>
+
+      <div class="header-actions">
+        <button class="header-action demo"><small>待处理</small><b>我的任务</b></button>
+        <button class="header-action demo"><small>吴昊</small><b>个人中心</b></button>
+        <button class="header-action balance demo"><span>●</span><small>资源额度</small><b>68%</b></button>
+      </div>
+    </div>
+
+    <nav class="quick-nav" aria-label="快捷导航">
+      <button class="pill primary" id="workspaceMenuButton" aria-expanded="false" aria-controls="megaMenu">工作空间 <span class="down">⌄</span></button>
+      <button class="pill primary demo">平台服务 <span class="down">⌄</span></button>
+      <button class="pill" data-filter="大区">大区运维</button>
+      <button class="pill" data-filter="部署">发布部署</button>
+      <button class="pill" data-filter="监控">实时监控</button>
+      <button class="pill" data-filter="数据">数据分析</button>
+      <button class="pill" data-filter="Redis">Redis</button>
+      <button class="pill" data-filter="审计">操作审计</button>
+      <button class="pill" data-filter="告警">告警中心</button>
+      <button class="pill" data-filter="">全部能力</button>
+    </nav>
+  </header>
+
+  <div class="mega-menu" id="megaMenu" aria-label="工作空间菜单">
+    <section class="menu-column">
+      <h2 class="menu-title">全部工作空间</h2>
+      <button class="menu-item active" data-menu-group="operations">大区与区服 <span>›</span></button>
+      <button class="menu-item" data-menu-group="analytics">数据分析引擎 <span>›</span></button>
+      <button class="menu-item" data-menu-group="platform">平台服务 <span>›</span></button>
+      <button class="menu-item" data-menu-group="security">安全与审计 <span>›</span></button>
+      <button class="menu-item" data-menu-group="settings">配置中心 <span>›</span></button>
+      <button class="menu-item" data-menu-group="favorites">我的收藏 <span class="count">6</span></button>
+    </section>
+    <section class="menu-column" id="menuDetails">
+      <h2 class="menu-title">大区与区服</h2>
+      <button class="menu-item" data-target="RO_1 核心大区">RO_1 核心大区</button>
+      <button class="menu-item" data-target="RO_6 联合大区">RO_6 联合大区</button>
+      <button class="menu-item" data-target="RO_7 渠道大区">RO_7 渠道大区</button>
+      <button class="menu-item" data-target="新服部署">新服部署</button>
+      <button class="menu-item" data-target="合服管理">合服管理</button>
+      <button class="menu-item" data-target="区服列表">区服列表</button>
+      <button class="menu-item" data-target="容量规划">容量规划</button>
+      <button class="menu-item" data-target="快捷操作">快捷操作</button>
+    </section>
+  </div>
+  <div class="page-overlay" id="pageOverlay"></div>
+
+  <main class="page">
+    <p class="breadcrumbs"><b>统一工作台</b>　/　生产概览</p>
+
+    <section class="hero">
+      <div class="hero-content">
+        <p class="hero-kicker">今日运行概览</p>
+        <h1>让每一次运维操作<br>更快、更清晰</h1>
+        <p>统一查看 3 个生产大区、30 个区服与 2 个数据引擎的实时状态。</p>
+        <button class="hero-button" id="heroAction">查看今日任务</button>
+      </div>
+      <span class="hero-status">所有核心系统运行正常 · 更新于刚刚</span>
+    </section>
+
+    <section class="section" id="workspaces">
+      <div class="section-head"><div><h2>常用工作空间</h2><p>点击卡片进入对应的运维或分析功能。</p></div><button class="link-button" id="viewAll">查看全部</button></div>
+      <div class="workspace-row" id="workspaceRow">
+        <button class="workspace-card" data-search="大区 区服 运维 RO_1 核心">
+          <div class="workspace-art"><span class="art-icon">R1</span><span class="favorite">♡</span></div>
+          <h3>RO_1 核心大区</h3><p>12 个区服 · 华东生产节点</p><div class="card-meta"><strong>运行正常</strong><span class="open-chip">打开</span></div>
+        </button>
+        <button class="workspace-card" data-search="部署 发布 新服">
+          <div class="workspace-art green"><span class="art-icon">↟</span><span class="favorite">♡</span></div>
+          <h3>新服部署</h3><p>环境校验、配置生成与灰度发布</p><div class="card-meta"><strong>4 个待发布</strong><span class="open-chip">打开</span></div>
+        </button>
+        <button class="workspace-card" data-search="监控 告警 实时">
+          <div class="workspace-art orange"><span class="art-icon">⌁</span><span class="favorite">♡</span></div>
+          <h3>实时监控</h3><p>集群指标、容量水位与异常追踪</p><div class="card-meta"><strong>0 个故障</strong><span class="open-chip">打开</span></div>
+        </button>
+        <button class="workspace-card" data-search="数据 分析 Flow 实时 引擎">
+          <div class="workspace-art purple"><span class="art-icon">F1</span><span class="favorite">♡</span></div>
+          <h3>Flow 实时分析</h3><p>在线、留存、付费与行为事件</p><div class="card-meta"><strong>38 ms 延迟</strong><span class="open-chip">打开</span></div>
+        </button>
+        <button class="workspace-card" data-search="Redis 数据库 缓存">
+          <div class="workspace-art navy"><span class="art-icon">DB</span><span class="favorite">♡</span></div>
+          <h3>Redis 管理</h3><p>实例状态、键空间与慢查询</p><div class="card-meta"><strong>18 个实例</strong><span class="open-chip">打开</span></div>
+        </button>
+        <button class="workspace-card" data-search="审计 安全 操作 日志">
+          <div class="workspace-art yellow"><span class="art-icon">✓</span><span class="favorite">♡</span></div>
+          <h3>操作审计</h3><p>关键操作记录与权限追溯</p><div class="card-meta"><strong>今日 11 次</strong><span class="open-chip">打开</span></div>
+        </button>
+      </div>
+      <div class="empty-search" id="emptySearch">没有找到匹配的工作空间，请尝试其他关键词。</div>
+    </section>
+
+    <section class="section promo-grid">
+      <article class="promo"><h3>区服健康，一屏掌握</h3><a href="#operations">查看运行状态</a><span class="promo-shape" data-icon="◎"></span></article>
+      <article class="promo"><h3>发布流程，更稳更快</h3><a href="#tasks">查看部署任务</a><span class="promo-shape" data-icon="↟"></span></article>
+      <article class="promo"><h3>从事件到业务洞察</h3><a href="#operations">打开实时分析</a><span class="promo-shape" data-icon="⌁"></span></article>
+    </section>
+
+    <section class="section operations-grid" id="operations">
+      <div class="panel">
+        <div class="panel-head"><div><b>生产运行指标</b><small>最近 30 分钟 · 全部大区</small></div><span class="status-live">● 实时更新</span></div>
+        <div class="metric-row">
+          <div class="metric"><span>平台可用率</span><strong>99.99%</strong><small class="good">稳定</small></div>
+          <div class="metric"><span>实时在线</span><strong>18.4k</strong><small class="good">↑ 8.2%</small></div>
+          <div class="metric"><span>平均 CPU</span><strong>43%</strong><small>安全水位</small></div>
+          <div class="metric"><span>查询 P95</span><strong>38 ms</strong><small class="good">↓ 5 ms</small></div>
+        </div>
+        <div class="sparkline" aria-label="运行趋势示意图"><i style="height:28%"></i><i style="height:38%"></i><i style="height:51%"></i><i style="height:44%"></i><i style="height:60%"></i><i style="height:72%"></i><i style="height:64%"></i><i style="height:78%"></i><i style="height:88%"></i><i style="height:74%"></i><i style="height:92%"></i><i style="height:83%"></i><i style="height:96%"></i><i style="height:90%"></i></div>
+      </div>
+
+      <div class="panel" id="tasks">
+        <div class="panel-head"><div><b>近期任务</b><small>今天需要关注的工作</small></div><button class="link-button demo">全部任务</button></div>
+        <div class="task-list">
+          <div class="task"><span class="task-icon">R1</span><div><b>测试 4 服配置更新</b><small>自动开服策略</small></div><time>14:32</time></div>
+          <div class="task"><span class="task-icon" style="color:var(--purple);background:var(--purple-soft)">F1</span><div><b>周留存报表生成</b><small>Flow 分析引擎</small></div><time>13:00</time></div>
+          <div class="task"><span class="task-icon" style="color:var(--orange);background:var(--orange-soft)">!</span><div><b>RO_7 容量告警恢复</b><small>系统监控</small></div><time>10:16</time></div>
+          <div class="task"><span class="task-icon">DB</span><div><b>Redis 慢查询复核</b><small>数据库管理</small></div><time>09:48</time></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast"><span class="toast-dot"></span><span id="toastText">操作完成</span></div>
+
+  <script>
+    const menuButton = document.querySelector('#workspaceMenuButton');
+    const megaMenu = document.querySelector('#megaMenu');
+    const overlay = document.querySelector('#pageOverlay');
+    const menuDetails = document.querySelector('#menuDetails');
+    const searchInput = document.querySelector('#searchInput');
+    const workspaceCards = [...document.querySelectorAll('.workspace-card')];
+    const emptySearch = document.querySelector('#emptySearch');
+    const toast = document.querySelector('#toast');
+    const toastText = document.querySelector('#toastText');
+    let toastTimer;
+
+    const menuGroups = {
+      operations: ['大区与区服', 'RO_1 核心大区', 'RO_6 联合大区', 'RO_7 渠道大区', '新服部署', '合服管理', '区服列表', '容量规划', '快捷操作'],
+      analytics: ['数据分析引擎', 'Flow 实时分析', 'Ledger 财务分析', '在线分析', '留存分析', '收入分析', '玩家分层', '自定义查询'],
+      platform: ['平台服务', '任务中心', '告警与事件', '发布中心', '通知订阅', '服务目录', '运行报告'],
+      security: ['安全与审计', '操作审计', '登录记录', '权限变更', '密钥管理', '风险事件'],
+      settings: ['配置中心', '大区设置', '渠道配置', 'SDK 配置', '数据源', '环境变量'],
+      favorites: ['我的收藏', 'RO_1 核心大区', '新服部署', '实时监控', 'Flow 实时分析', 'Redis 管理', '操作审计']
+    };
+
+    function notify(message) {
+      toastText.textContent = message;
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
+    }
+
+    function setMenu(open) {
+      megaMenu.classList.toggle('open', open);
+      overlay.classList.toggle('show', open);
+      document.body.classList.toggle('menu-open', open);
+      menuButton.classList.toggle('active', open);
+      menuButton.setAttribute('aria-expanded', String(open));
+    }
+
+    function renderMenu(group) {
+      const items = menuGroups[group];
+      menuDetails.innerHTML = `<h2 class="menu-title">${items[0]}</h2>` + items.slice(1).map(item => `<button class="menu-item" data-target="${item}">${item}</button>`).join('');
+    }
+
+    function filterWorkspaces(query) {
+      const value = query.trim().toLowerCase();
+      let visible = 0;
+      workspaceCards.forEach(card => {
+        const match = !value || card.dataset.search.toLowerCase().includes(value) || card.textContent.toLowerCase().includes(value);
+        card.hidden = !match;
+        if (match) visible += 1;
+      });
+      emptySearch.classList.toggle('show', visible === 0);
+      document.querySelector('#workspaces').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    menuButton.addEventListener('click', () => setMenu(!megaMenu.classList.contains('open')));
+    overlay.addEventListener('click', () => setMenu(false));
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape') setMenu(false);
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); searchInput.focus(); }
+    });
+
+    megaMenu.addEventListener('click', event => {
+      const group = event.target.closest('[data-menu-group]');
+      if (group) {
+        document.querySelectorAll('[data-menu-group]').forEach(item => item.classList.remove('active'));
+        group.classList.add('active');
+        renderMenu(group.dataset.menuGroup);
+        return;
+      }
+      const target = event.target.closest('[data-target]');
+      if (target) { setMenu(false); filterWorkspaces(target.dataset.target); notify(`已定位：${target.dataset.target}`); }
+    });
+
+    document.querySelector('#globalSearch').addEventListener('submit', event => { event.preventDefault(); setMenu(false); filterWorkspaces(searchInput.value); });
+    searchInput.addEventListener('input', () => { if (!searchInput.value) filterWorkspaces(''); });
+
+    document.querySelectorAll('[data-filter]').forEach(button => button.addEventListener('click', () => {
+      document.querySelectorAll('[data-filter]').forEach(item => item.classList.remove('active'));
+      button.classList.add('active');
+      searchInput.value = button.dataset.filter;
+      filterWorkspaces(button.dataset.filter);
+    }));
+
+    workspaceCards.forEach(card => card.addEventListener('click', event => {
+      if (event.target.closest('.favorite')) {
+        event.stopPropagation();
+        const favorite = event.target.closest('.favorite');
+        favorite.textContent = favorite.textContent === '♡' ? '♥' : '♡';
+        notify(favorite.textContent === '♥' ? '已加入收藏' : '已取消收藏');
+      } else notify(`正在打开：${card.querySelector('h3').textContent}`);
+    }));
+
+    document.querySelector('#viewAll').addEventListener('click', () => { searchInput.value = ''; filterWorkspaces(''); });
+    document.querySelector('#heroAction').addEventListener('click', () => document.querySelector('#tasks').scrollIntoView({ behavior: 'smooth' }));
+    document.querySelector('#environmentButton').addEventListener('click', () => notify('当前环境：CN Production · 华东主集群'));
+    document.querySelectorAll('.demo').forEach(button => button.addEventListener('click', () => notify('该功能入口已预留，可继续扩展')));
+  </script>
+</body>
+</html>
